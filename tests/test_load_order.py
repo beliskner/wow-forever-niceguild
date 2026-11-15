@@ -37,7 +37,7 @@ class AddonLoadOrderTests(unittest.TestCase):
                 on_event(frame, "ADDON_LOADED", "niceguild")
 
         self.assertIsNotNone(ns.db)
-        self.assertEqual(ns.VERSION, "1.6.0")
+        self.assertEqual(ns.VERSION, "1.7.0")
         self.assertEqual(len(ns.db.congratsTabs), 10)
         ns.ToggleConfig()
         config_frame = lua.globals().FindFrameByName("NiceGuildConfigFrame")

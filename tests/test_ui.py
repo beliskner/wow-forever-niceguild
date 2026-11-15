@@ -257,9 +257,31 @@ class MainWindowTests(unittest.TestCase):
 
         self.assertEqual(frame.width, 580)
         self.assertEqual(frame.height, 650)
-        self.assertTrue(lua.globals().HasFontStringText("1. Level-Up Congratulations"))
-        self.assertTrue(lua.globals().HasFontStringText("2. New Member Welcome"))
+        self.assertTrue(lua.globals().HasFontStringText("1. Level-Up Congratulations (check to enable)"))
+        self.assertTrue(lua.globals().HasFontStringText("2. New Member Welcome (check to enable)"))
         self.assertTrue(lua.globals().HasFontStringText("3. Utilities, Formatting Tokens & Raid Symbols"))
+
+    def test_section_header_text_is_the_sections_enable_checkbox(self):
+        lua = make_runtime(with_ui=True)
+        ns = lua.table()
+        lua.globals().ns = ns
+        lua.execute(MAIN_FRAME_SETUP)
+        load_addon_file(lua, "UI_Main.lua", ns)
+
+        ns.ToggleConfig()
+        frame = lua.globals().FindFrameByName("NiceGuildConfigFrame")
+        same = lua.eval("function(a, b) return a == b end")
+        congrats_header = frame.congratsSection.panel.titleCheck
+        welcome_header = frame.welcomeSection.panel.titleCheck
+
+        self.assertTrue(same(congrats_header, frame.congratsCheck))
+        self.assertTrue(same(welcome_header, frame.welcomeCheck))
+        self.assertTrue(same(congrats_header.parent, frame.congratsSection.panel))
+        self.assertTrue(same(welcome_header.parent, frame.welcomeSection.panel))
+        self.assertEqual(congrats_header.Text.text, "1. Level-Up Congratulations (check to enable)")
+        self.assertEqual(welcome_header.Text.text, "2. New Member Welcome (check to enable)")
+        self.assertFalse(congrats_header.checked)
+        self.assertFalse(welcome_header.checked)
 
     def test_master_toggles_live_inside_their_own_sections_and_start_off(self):
         lua = make_runtime(with_ui=True)

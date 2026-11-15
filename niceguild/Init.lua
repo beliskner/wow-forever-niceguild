@@ -1,7 +1,7 @@
 local addonName, ns = ...
 
 ns.addonName = addonName
-ns.VERSION = "1.6.0"
+ns.VERSION = "1.7.0"
 
 -- Secure Print helper
 function ns.Print(...)

@@ -23,6 +23,7 @@ local function new_font_string()
     function fs:SetJustifyV(...) end
     function fs:SetWordWrap(...) end
     function fs:SetNonSpaceWrap(...) end
+    function fs:SetFontObject(...) end
     table.insert(CREATED_FONT_STRINGS, fs)
     return fs
 end
@@ -117,6 +118,7 @@ end
 function CreateFrame(frame_type, name, parent, template)
     local frame = NewFrame(frame_type, template)
     frame.name = name
+    frame.parent = parent
     return frame
 end
 

@@ -58,6 +58,22 @@ local function InsertTagIntoActiveBox(tag)
     ns.RefreshConfigUI()
 end
 
+-- Section header: the title IS the enable checkbox, so the row explains itself.
+local function BuildSectionHeader(parent, titleText, onToggle)
+    local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    check:SetPoint("TOPLEFT", 8, -4)
+    check:SetPoint("TOPRIGHT", -8, -4)
+    check:SetHeight(24)
+    check.Text:SetFontObject("GameFontNormal")
+    check.Text:SetText(titleText)
+    check.Text:SetJustifyH("LEFT")
+    check:SetScript("OnClick", function(self)
+        onToggle(self:GetChecked() and true or false)
+    end)
+    parent.titleCheck = check
+    return check
+end
+
 local function BuildConfigFrame()
     if configFrame then
         return configFrame
@@ -130,17 +146,9 @@ local function BuildConfigFrame()
     sec1:SetPoint("TOPLEFT", 14, -48)
     sec1:SetPoint("TOPRIGHT", -14, -48)
 
-    local sec1Title = sec1:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    sec1Title:SetPoint("TOPLEFT", 10, -8)
-    sec1Title:SetText("1. Level-Up Congratulations")
-
-    local congratsCheck = CreateFrame("CheckButton", nil, sec1, "UICheckButtonTemplate")
-    congratsCheck:SetSize(24, 24)
-    congratsCheck:SetPoint("TOPRIGHT", -10, -4)
-    congratsCheck.Text:SetText("Enable auto-congratulate")
-    congratsCheck:SetScript("OnClick", function(self)
+    local congratsCheck = BuildSectionHeader(sec1, "1. Level-Up Congratulations (check to enable)", function(enabled)
         if ns.db then
-            ns.db.enableCongrats = self:GetChecked() and true or false
+            ns.db.enableCongrats = enabled
         end
         ns.RefreshConfigUI()
     end)
@@ -158,17 +166,9 @@ local function BuildConfigFrame()
     sec2:SetPoint("TOPLEFT", sec1, "BOTTOMLEFT", 0, -8)
     sec2:SetPoint("TOPRIGHT", sec1, "BOTTOMRIGHT", 0, -8)
 
-    local sec2Title = sec2:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    sec2Title:SetPoint("TOPLEFT", 10, -8)
-    sec2Title:SetText("2. New Member Welcome")
-
-    local welcomeCheck = CreateFrame("CheckButton", nil, sec2, "UICheckButtonTemplate")
-    welcomeCheck:SetSize(24, 24)
-    welcomeCheck:SetPoint("TOPRIGHT", -10, -4)
-    welcomeCheck.Text:SetText("Enable auto-welcome")
-    welcomeCheck:SetScript("OnClick", function(self)
+    local welcomeCheck = BuildSectionHeader(sec2, "2. New Member Welcome (check to enable)", function(enabled)
         if ns.db then
-            ns.db.enableWelcome = self:GetChecked() and true or false
+            ns.db.enableWelcome = enabled
         end
         ns.RefreshConfigUI()
     end)

@@ -134,6 +134,55 @@ function ns.GetSelfPrimaryName()
     return CleanName(UnitName("player"))
 end
 
+-- WoW: Forever has no realms: the second return value of these functions is the
+-- character SURNAME where a realm used to be, e.g. UnitNameUnmodified("player")
+-- returns ("Coreander", "Shoeberry"). ShouldDisplaySurname() means UnitName may
+-- omit it, so prefer UnitNameUnmodified and keep the answer with the most parts.
+local NAME_SOURCES = { "UnitNameUnmodified", "UnitFullName", "UnitName" }
+
+local function CountNameParts(name)
+    if type(name) ~= "string" then
+        return 0
+    end
+    local parts = 0
+    for _ in name:gmatch("%S+") do
+        parts = parts + 1
+    end
+    return parts
+end
+
+local function JoinSurname(name, surname)
+    if type(name) ~= "string" or name == "" then
+        return nil
+    end
+    if type(surname) == "string" and surname ~= "" and not name:find("%s") then
+        return name .. " " .. surname
+    end
+    return name
+end
+
+-- Full "First Surname" name for a unit, whichever client call carries the surname.
+function ns.GetUnitFullName(unit)
+    unit = unit or "player"
+    local best, bestParts, bestSource
+    for _, source in ipairs(NAME_SOURCES) do
+        local fn = _G and _G[source] or nil
+        if type(fn) == "function" then
+            local ok, rawName, rawSurname = pcall(fn, unit)
+            if ok then
+                local candidate = JoinSurname(CleanName(rawName), CleanName(rawSurname))
+                if candidate then
+                    local parts = CountNameParts(candidate)
+                    if not best or parts > bestParts then
+                        best, bestParts, bestSource = candidate, parts, source
+                    end
+                end
+            end
+        end
+    end
+    return best, bestSource
+end
+
 local function SelfCacheKey()
     if type(UnitGUID) == "function" then
         local guid = CleanName(UnitGUID("player"))
@@ -153,6 +202,9 @@ function ns.SetSelfFullName(fullName, source)
     if not clean then
         return false
     end
+    if ns.selfFullName and CountNameParts(clean) < CountNameParts(ns.selfFullName) then
+        return false
+    end
     ns.selfFullName = clean
     ns.selfNameSource = source or "GuildRoster"
 
@@ -169,38 +221,45 @@ function ns.SetSelfFullName(fullName, source)
 end
 
 function ns.GetSelfFullName()
-    if type(ns.selfFullName) == "string" and ns.selfFullName ~= "" then
+    local live, liveSource = ns.GetUnitFullName("player")
+    local liveParts = CountNameParts(live)
+
+    if type(ns.selfFullName) == "string" and ns.selfFullName ~= ""
+        and CountNameParts(ns.selfFullName) >= liveParts then
         return ns.selfFullName
     end
 
-    local primary = ns.GetSelfPrimaryName()
+    -- 1. The unit API itself carries the surname as its second return value.
+    if live and liveParts > 1 then
+        ns.selfFullName = live
+        ns.selfNameSource = liveSource or "UnitName"
+        if ns.db then
+            if type(ns.db.selfNameCache) ~= "table" then
+                ns.db.selfNameCache = {}
+            end
+            local key = SelfCacheKey()
+            if key then
+                ns.db.selfNameCache[key] = live
+            end
+        end
+        return live
+    end
 
-    -- 1. Per-character cache, so previews are correct before the roster arrives.
+    -- 2. Per-character cache, so previews are right before the roster arrives.
     if ns.db and type(ns.db.selfNameCache) == "table" then
         local key = SelfCacheKey()
         local cached = key and CleanName(ns.db.selfNameCache[key]) or nil
-        if cached then
-            if not primary or cached:lower():sub(1, #primary) == primary:lower() then
-                ns.selfFullName = cached
-                ns.selfNameSource = "SavedCache"
-                return cached
-            end
+        if cached and CountNameParts(cached) > 1 then
+            ns.selfFullName = cached
+            ns.selfNameSource = "SavedCache"
+            return cached
         end
     end
 
-    -- 2. UnitFullName may already carry both parts on some builds.
-    if type(UnitFullName) == "function" then
-        local full = CleanName((UnitFullName("player")))
-        if full and full:find(" ") then
-            ns.selfFullName = full
-            ns.selfNameSource = "UnitFullName"
-            return full
-        end
-    end
-
-    -- 3. Primary name only until GUILD_ROSTER_UPDATE resolves the full name.
-    ns.selfNameSource = "UnitName"
-    return primary or "Adventurer"
+    -- 3. First name only, until the roster or the client resolves the surname.
+    ns.selfFullName = live or ns.GetSelfPrimaryName() or "Adventurer"
+    ns.selfNameSource = liveSource or "UnitName"
+    return ns.selfFullName
 end
 
 function ns.GetSelfInfo()
