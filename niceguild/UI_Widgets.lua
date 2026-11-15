@@ -8,8 +8,8 @@ function ns.CreateStyledEditBox(parent, width, height)
     box:SetTextInsets(8, 8, 4, 4)
     box:SetMaxLetters(200)
     box:SetBackdrop({
-        bgFile = "Interface\ChatFrame\ChatFrameBackground",
-        edgeFile = "Interface\Tooltips\UI-Tooltip-Border",
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
         tile = true,
         tileSize = 16,
         edgeSize = 12,

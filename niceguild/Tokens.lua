@@ -12,7 +12,7 @@ ns.RAID_SYMBOLS = {
 }
 
 function ns.GetRaidIconTexturePath(index)
-    return "Interface\TargetingFrame\UI-RaidTargetingIcon_" .. tostring(index)
+    return "Interface\\TargetingFrame\\UI-RaidTargetingIcon_" .. tostring(index)
 end
 
 function ns.NormalizeRaidSymbolsForChat(text)

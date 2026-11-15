@@ -16,8 +16,8 @@ local function BuildConfigFrame()
     f:SetClampedToScreen(true)
 
     f:SetBackdrop({
-        bgFile = "Interface\DialogFrame\UI-DialogBox-Background",
-        edgeFile = "Interface\DialogFrame\UI-DialogBox-Border",
+        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+        edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
         tile = true,
         tileSize = 32,
         edgeSize = 24,
@@ -82,8 +82,8 @@ local function BuildConfigFrame()
             btn:SetPoint("LEFT", prevBtn, "RIGHT", 4, 0)
         end
         btn:SetBackdrop({
-            bgFile = "Interface\ChatFrame\ChatFrameBackground",
-            edgeFile = "Interface\Tooltips\UI-Tooltip-Border",
+            bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
             tile = true, tileSize = 8, edgeSize = 8,
             insets = { left = 2, right = 2, top = 2, bottom = 2 },
         })

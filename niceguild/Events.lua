@@ -12,8 +12,6 @@ function ns.SendGuildMessage(msg)
 
     if C_ChatInfo and type(C_ChatInfo.SendChatMessage) == "function" then
         C_ChatInfo.SendChatMessage(safeMsg, "GUILD")
-    elseif SendChatMessage then
-        SendChatMessage(safeMsg, "GUILD")
     end
 end
 

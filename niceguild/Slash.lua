@@ -5,7 +5,7 @@ SLASH_NICEGUILD2 = "/ng"
 
 SlashCmdList["NICEGUILD"] = function(msg)
     if not msg then msg = "" end
-    msg = msg:trim and msg:trim() or msg:match("^%s*(.-)%s*$")
+    msg = msg:match("^%s*(.-)%s*$")
 
     local cmd, sub, val = msg:match("^(%S+)%s*(%S*)%s*(.*)$")
     if not cmd or cmd == "" then
