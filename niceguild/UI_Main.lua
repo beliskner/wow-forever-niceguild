@@ -61,9 +61,8 @@ end
 -- Section header: the title IS the enable checkbox, so the row explains itself.
 local function BuildSectionHeader(parent, titleText, onToggle)
     local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    check:SetSize(24, 24)
     check:SetPoint("TOPLEFT", 8, -4)
-    check:SetPoint("TOPRIGHT", -8, -4)
-    check:SetHeight(24)
     check.Text:SetFontObject("GameFontNormal")
     check.Text:SetText(titleText)
     check.Text:SetJustifyH("LEFT")

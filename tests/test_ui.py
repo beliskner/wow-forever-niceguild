@@ -280,6 +280,10 @@ class MainWindowTests(unittest.TestCase):
         self.assertTrue(same(welcome_header.parent, frame.welcomeSection.panel))
         self.assertEqual(congrats_header.Text.text, "1. Level-Up Congratulations (check to enable)")
         self.assertEqual(welcome_header.Text.text, "2. New Member Welcome (check to enable)")
+        self.assertEqual((congrats_header.width, congrats_header.height), (24, 24))
+        self.assertEqual((welcome_header.width, welcome_header.height), (24, 24))
+        self.assertEqual(congrats_header.point[1], "TOPLEFT")
+        self.assertEqual(welcome_header.point[1], "TOPLEFT")
         self.assertFalse(congrats_header.checked)
         self.assertFalse(welcome_header.checked)
 

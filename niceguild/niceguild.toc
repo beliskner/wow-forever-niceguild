@@ -2,7 +2,7 @@
 ## Title: Nice Guild
 ## Notes: Automatically congratulates guild member level-ups and welcomes new guild members using up to 10 randomized message templates per section.
 ## Author: NiceGuild
-## Version: 1.7.0
+## Version: 1.7.1
 ## SavedVariables: NiceGuildDB
 ## Category: Social
 ## IconTexture: Interface\AddOns\niceguild\logo_32x32
