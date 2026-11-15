@@ -47,6 +47,26 @@ class EventFlowTests(unittest.TestCase):
         self.assertEqual(ns.formatArgs[1], "Selected template")
         self.assertIn("Selected template", lua.globals().DEFAULT_CHAT_FRAME.lastMessage)
 
+    def test_disabled_section_skips_random_selection_and_sending(self):
+        lua, ns, event_frame = self.make_namespace()
+        ns.db.enableCongrats = False
+        lua.execute(
+            r'''
+            ns.sendCalls = 0
+            function ns.SendGuildMessage(message) ns.sendCalls = ns.sendCalls + 1 end
+            '''
+        )
+
+        event_frame.scripts.OnEvent(
+            event_frame,
+            "CHAT_MSG_SYSTEM",
+            "Alice has reached level 42",
+        )
+
+        self.assertEqual(ns.randomPickCalls, 0)
+        self.assertEqual(ns.sendCalls, 0)
+        self.assertIsNone(ns.formatArgs)
+
     def test_level_event_passes_captured_level_without_fake_class(self):
         _, ns, event_frame = self.make_namespace()
 

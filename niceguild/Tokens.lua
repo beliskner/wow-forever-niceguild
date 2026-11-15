@@ -11,6 +11,25 @@ ns.RAID_SYMBOLS = {
     { index = 8, tag = "{skull}", rt = "{rt8}", label = "Skull" },
 }
 
+-- Formatting tokens with worst-case character weights used by the chat-limit preview
+ns.FORMAT_TOKENS = {
+    { tag = "{{name}}", weight = 25, desc = "Member name in lowercase" },
+    { tag = "{{Name}}", weight = 25, desc = "Member name, first letters capitalized" },
+    { tag = "{{NAME}}", weight = 25, desc = "Member name in UPPERCASE" },
+    { tag = "{{class}}", weight = 7, desc = "Class in lowercase" },
+    { tag = "{{Class}}", weight = 7, desc = "Class capitalized" },
+    { tag = "{{CLASS}}", weight = 7, desc = "Class in UPPERCASE" },
+    { tag = "{{lvl}}", weight = 2, desc = "Member level" },
+}
+
+function ns.GetPotentialLength(text)
+    if type(text) ~= "string" then return 0 end
+    local simulated = text:gsub("{{[Nn][Aa][Mm][Ee]}}", string.rep("N", 25))
+    simulated = simulated:gsub("{{[Cc][Ll][Aa][Ss][Ss]}}", string.rep("C", 7))
+    simulated = simulated:gsub("{{[Ll][Vv][Ll]}}", string.rep("L", 2))
+    return #simulated
+end
+
 function ns.GetRaidIconTexturePath(index)
     return "Interface\\TargetingFrame\\UI-RaidTargetingIcon_" .. tostring(index)
 end

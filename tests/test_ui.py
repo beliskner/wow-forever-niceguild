@@ -15,9 +15,13 @@ class TabSectionTests(unittest.TestCase):
                 ns.db.congratsTabs[i] = { enabled = i == 1, text = i == 1 and " Hello " or "" }
                 ns.db.welcomeTabs[i] = { enabled = i == 1, text = i == 1 and " Welcome " or "" }
             end
+            ns.MAX_CHAT_CHARACTERS = 255
             ns.refreshCalls = 0
             function ns.RefreshConfigUI() ns.refreshCalls = ns.refreshCalls + 1 end
             function ns.GetSafePlayerName() return "Tester" end
+            function ns.GetPotentialLength(text) return string.len(text or "") end
+            function ns.FormatTemplate(text, name) return text end
+            function ns.RenderRaidSymbolsForPreview(text, size) return text end
             ns.triggerArgs = nil
             function ns.TriggerGuildGreeting(...) ns.triggerArgs = {...} end
             function ns.SaveInputsFromUI() end
@@ -81,30 +85,123 @@ class TabSectionTests(unittest.TestCase):
         self.assertEqual(ns.triggerArgs[4], " Hello ")
 
 
-class MainWindowTests(unittest.TestCase):
-    def test_welcome_preview_uses_string_concatenation(self):
+MAIN_FRAME_SETUP = r'''
+NiceGuildDB = {}
+ns.VERSION = "1.4.1"
+ns.db = { enableCongrats = false, enableWelcome = false, useShortName = true }
+ns.RAID_SYMBOLS = {}
+ns.FORMAT_TOKENS = { { tag = "{{Name}}", weight = 25, desc = "test token" } }
+ns.MAX_CHAT_CHARACTERS = 255
+function ns.RunOutOfCombat(callback) callback() end
+function ns.Print(...) end
+function ns.GetSafePlayerName() return "Tester" end
+function ns.FormatTemplate(text, name) return text end
+function ns.RenderRaidSymbolsForPreview(text, size) return text end
+function ns.GetPotentialLength(text) return string.len(text or "") end
+function ns.CreateSectionPanel(parent, height)
+    local panel = NewFrame("Frame", nil)
+    panel.height = height
+    return panel
+end
+function ns.BuildTabSection(parent, kind)
+    local section = NewFrame("Frame", nil)
+    section.kind = kind
+    section.editBox = NewFrame("EditBox", nil)
+    section.editBox.textValue = kind
+    section.previewText = parent:CreateFontString()
+    section.previewLabel = section.previewText
+    section.countText = parent:CreateFontString()
+    section.warnText = parent:CreateFontString()
+    function section:SelectTab(...) end
+    function section:RefreshTabContent(...) end
+    function section:UpdateTabVisuals(...) end
+    function section:UpdatePreview(...) end
+    return section
+end
+'''
+
+
+class WidgetIntegrationTests(unittest.TestCase):
+    def make_section(self, kind="level"):
         lua = make_runtime(with_ui=True)
         ns = lua.table()
         lua.globals().ns = ns
         lua.execute(
             r'''
-            NiceGuildDB = {}
-            ns.VERSION = "1.4.1"
-            ns.db = { useShortName = true }
-            ns.RAID_SYMBOLS = {}
-            function ns.RunOutOfCombat(callback) callback() end
-            function ns.Print(...) end
+            ns.db = { congratsTabs = {}, welcomeTabs = {} }
+            for i = 1, 10 do
+                ns.db.congratsTabs[i] = { enabled = false, text = "" }
+                ns.db.welcomeTabs[i] = { enabled = false, text = "" }
+            end
+            ns.db.congratsTabs[3] = { enabled = true, text = "Third" }
+            ns.MAX_CHAT_CHARACTERS = 255
+            ns.refreshCalls = 0
+            function ns.RefreshConfigUI() ns.refreshCalls = ns.refreshCalls + 1 end
             function ns.GetSafePlayerName() return "Tester" end
+            function ns.GetPotentialLength(text) return string.len(text or "") end
             function ns.FormatTemplate(text, name) return text end
-            function ns.RenderRaidSymbolsForPreview(text, size) return "rendered" end
-            function ns.BuildTabSection(parent, kind, offset)
-                local section = NewFrame("Frame", nil)
-                section.editBox = NewFrame("EditBox", nil)
-                section.editBox.textValue = kind
-                section.previewLabel = parent:CreateFontString()
-                function section:SelectTab(...) end
-                function section:RefreshTabContent(...) end
-                return section
+            function ns.RenderRaidSymbolsForPreview(text, size) return text end
+            function ns.TriggerGuildGreeting(...) end
+            function ns.SaveInputsFromUI() end
+            '''
+        )
+        load_addon_file(lua, "UI_Widgets.lua", ns)
+        load_addon_file(lua, "UI_Tabs.lua", ns)
+        return lua, ns, ns.BuildTabSection(lua.globals().UIParent, kind)
+
+    def test_real_widgets_build_ten_tab_buttons_with_the_first_selected(self):
+        lua, ns, section = self.make_section()
+
+        self.assertEqual(len(section.tabs), 10)
+        self.assertEqual(section.activeTab, 1)
+        self.assertFalse(section.tabs[1].enabled)
+        self.assertTrue(section.tabs[3].enabled)
+
+    def test_focusing_the_editor_keeps_the_widget_highlight_and_tracks_the_active_box(self):
+        lua, ns, section = self.make_section()
+
+        section.editBox.scripts["OnEditFocusGained"](section.editBox)
+
+        same_box = lua.eval("function(a, b) return a == b end")(section.editBox, ns.activeEditBox)
+        self.assertTrue(same_box)
+        self.assertAlmostEqual(section.editorContainer.borderColor[1], 0.95)
+
+    def test_selecting_an_enabled_tab_loads_its_message_into_the_editor(self):
+        lua, ns, section = self.make_section()
+
+        section.SelectTab(section, 3)
+
+        self.assertEqual(section.activeTab, 3)
+        self.assertEqual(section.editBox.GetText(section.editBox), "Third")
+        self.assertTrue(section.tabToggle.checked)
+
+
+class MainWindowTests(unittest.TestCase):
+    def test_main_window_restores_the_three_section_design(self):
+        lua = make_runtime(with_ui=True)
+        ns = lua.table()
+        lua.globals().ns = ns
+        lua.execute(MAIN_FRAME_SETUP)
+        load_addon_file(lua, "UI_Main.lua", ns)
+
+        ns.ToggleConfig()
+        frame = lua.globals().FindFrameByName("NiceGuildConfigFrame")
+
+        self.assertEqual(frame.width, 580)
+        self.assertEqual(frame.height, 700)
+        self.assertTrue(lua.globals().HasFontStringText("1. Level-Up Congratulations"))
+        self.assertTrue(lua.globals().HasFontStringText("2. New Member Welcome"))
+        self.assertTrue(lua.globals().HasFontStringText("3. Utilities, Auto-Message Toggles & Formatting Tokens"))
+
+    def test_refresh_renders_formatting_token_previews(self):
+        lua = make_runtime(with_ui=True)
+        ns = lua.table()
+        lua.globals().ns = ns
+        lua.execute(MAIN_FRAME_SETUP)
+        lua.execute(
+            r'''
+            function ns.FormatTemplate(text, name)
+                return "value-of-" .. text
             end
             '''
         )
@@ -112,35 +209,20 @@ class MainWindowTests(unittest.TestCase):
 
         ns.ToggleConfig()
 
-        self.assertTrue(lua.globals().HasFontStringText("Preview: rendered"))
+        self.assertTrue(lua.globals().HasFontStringText("|cffffffffvalue-of-{{Name}}|r |cff888888(25)|r"))
 
     def test_drag_started_during_combat_is_not_replayed_after_combat(self):
         lua = make_runtime(with_ui=True)
         ns = lua.table()
         lua.globals().ns = ns
+        lua.execute(MAIN_FRAME_SETUP)
         lua.execute(
             r'''
-            NiceGuildDB = {}
-            ns.VERSION = "1.4.1"
             combat = false
             pending = {}
             function InCombatLockdown() return combat end
-            ns.db = { useShortName = true }
-            ns.RAID_SYMBOLS = {}
             function ns.RunOutOfCombat(callback)
                 if combat then table.insert(pending, callback) else callback() end
-            end
-            function ns.Print(...) end
-            function ns.GetSafePlayerName() return "Tester" end
-            function ns.FormatTemplate(text, name) return text end
-            function ns.RenderRaidSymbolsForPreview(text, size) return text end
-            function ns.BuildTabSection(parent, kind, offset)
-                local section = NewFrame("Frame", nil)
-                section.editBox = NewFrame("EditBox", nil)
-                section.previewLabel = parent:CreateFontString()
-                function section:SelectTab(...) end
-                function section:RefreshTabContent(...) end
-                return section
             end
             '''
         )

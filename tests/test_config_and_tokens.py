@@ -16,6 +16,8 @@ class SavedVariableTests(unittest.TestCase):
         lua, ns = self.load_config(
             r'''
             NiceGuildDB = {
+                enableCongrats = false,
+                enableWelcome = true,
                 congratsText = "Legacy grats {{name}}",
                 welcomeText = "Legacy welcome {{name}}",
             }
@@ -26,7 +28,7 @@ class SavedVariableTests(unittest.TestCase):
 
         self.assertEqual(ns.db.congratsTabs[1].text, "Legacy grats {{name}}")
         self.assertEqual(ns.db.welcomeTabs[1].text, "Legacy welcome {{name}}")
-        self.assertTrue(ns.db.congratsTabs[1].enabled)
+        self.assertFalse(ns.db.congratsTabs[1].enabled)
         self.assertTrue(ns.db.welcomeTabs[1].enabled)
         self.assertIsNone(ns.db.congratsText)
         self.assertIsNone(ns.db.welcomeText)
@@ -53,6 +55,19 @@ class SavedVariableTests(unittest.TestCase):
 
         self.assertEqual(ns.db.congratsTabs[1].text, "")
         self.assertFalse(ns.db.congratsTabs[1].enabled)
+
+    def test_fresh_install_starts_with_both_sections_and_all_tabs_disabled(self):
+        lua, ns = self.load_config("NiceGuildDB = nil")
+
+        ns.InitializeSavedVariables()
+
+        self.assertFalse(ns.db.enableCongrats)
+        self.assertFalse(ns.db.enableWelcome)
+        for index in range(1, 11):
+            self.assertFalse(ns.db.congratsTabs[index].enabled)
+            self.assertFalse(ns.db.welcomeTabs[index].enabled)
+        self.assertIn("{{name}}", ns.db.congratsTabs[1].text)
+        self.assertIn("{{name}}", ns.db.welcomeTabs[1].text)
 
     def test_partial_or_malformed_tab_data_is_repaired(self):
         lua, ns = self.load_config(
@@ -102,6 +117,39 @@ class SavedVariableTests(unittest.TestCase):
         selected = ns.PickRandomEnabledTab("level", long_name)
 
         self.assertIsNone(selected)
+
+    def test_random_selection_is_uniform_over_enabled_non_whitespace_tabs(self):
+        lua, ns = self.load_config("NiceGuildDB = {}")
+        lua.execute(
+            r'''
+            function ns.FormatTemplate(template) return template end
+            randomLower = nil
+            randomUpper = nil
+            math.random = function(lower, upper)
+                randomLower = lower
+                randomUpper = upper
+                return upper
+            end
+            '''
+        )
+        ns.InitializeSavedVariables()
+        for index in range(1, 11):
+            ns.db.congratsTabs[index].enabled = False
+            ns.db.congratsTabs[index].text = ""
+        ns.db.congratsTabs[2].enabled = True
+        ns.db.congratsTabs[2].text = "Second"
+        ns.db.congratsTabs[4].enabled = True
+        ns.db.congratsTabs[4].text = "   \n\t  "
+        ns.db.congratsTabs[7].enabled = True
+        ns.db.congratsTabs[7].text = "Seventh"
+        ns.db.congratsTabs[9].enabled = True
+        ns.db.congratsTabs[9].text = "Ninth"
+
+        selected = ns.PickRandomEnabledTab("level", "Tester")
+
+        self.assertEqual(selected, "Ninth")
+        self.assertEqual(lua.globals().randomLower, 1)
+        self.assertEqual(lua.globals().randomUpper, 3)
 
 
 class RaidSymbolTests(unittest.TestCase):

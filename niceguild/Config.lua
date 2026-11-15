@@ -1,7 +1,11 @@
 local addonName, ns = ...
 
 -- Default message templates and configuration schema
-local function NormalizeTabs(tabs, legacyText, defaultText)
+local function HasUsableText(text)
+    return type(text) == "string" and text:match("%S") ~= nil
+end
+
+local function NormalizeTabs(tabs, legacyText, legacyEnabled, defaultText)
     if type(tabs) ~= "table" then
         tabs = {}
     end
@@ -17,7 +21,7 @@ local function NormalizeTabs(tabs, legacyText, defaultText)
         end
 
         if type(tab.enabled) ~= "boolean" then
-            tab.enabled = (i == 1)
+            tab.enabled = false
         end
 
         if type(tab.text) ~= "string" then
@@ -27,7 +31,7 @@ local function NormalizeTabs(tabs, legacyText, defaultText)
 
     if useLegacyText then
         tabs[1].text = legacyText
-        tabs[1].enabled = legacyText ~= ""
+        tabs[1].enabled = legacyEnabled == true and HasUsableText(legacyText)
     end
 
     return tabs
@@ -38,18 +42,20 @@ function ns.InitializeSavedVariables()
         NiceGuildDB = {}
     end
 
-    if type(NiceGuildDB.enableCongrats) ~= "boolean" then NiceGuildDB.enableCongrats = true end
-    if type(NiceGuildDB.enableWelcome) ~= "boolean" then NiceGuildDB.enableWelcome = true end
+    if type(NiceGuildDB.enableCongrats) ~= "boolean" then NiceGuildDB.enableCongrats = false end
+    if type(NiceGuildDB.enableWelcome) ~= "boolean" then NiceGuildDB.enableWelcome = false end
     if type(NiceGuildDB.useShortName) ~= "boolean" then NiceGuildDB.useShortName = true end
 
     NiceGuildDB.congratsTabs = NormalizeTabs(
         NiceGuildDB.congratsTabs,
         NiceGuildDB.congratsText,
+        NiceGuildDB.enableCongrats,
         "{star} Grats {{name}}! {star}"
     )
     NiceGuildDB.welcomeTabs = NormalizeTabs(
         NiceGuildDB.welcomeTabs,
         NiceGuildDB.welcomeText,
+        NiceGuildDB.enableWelcome,
         "{triangle} Welcome to the guild, {{name}}!"
     )
     NiceGuildDB.congratsText = nil

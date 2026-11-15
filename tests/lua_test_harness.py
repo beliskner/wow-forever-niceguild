@@ -17,13 +17,24 @@ local function new_font_string()
     function fs:SetPoint(...) end
     function fs:SetText(value) self.text = value end
     function fs:SetTextColor(...) self.color = {...} end
+    function fs:SetWidth(...) end
+    function fs:SetHeight(...) end
+    function fs:SetJustifyH(...) end
+    function fs:SetJustifyV(...) end
+    function fs:SetWordWrap(...) end
+    function fs:SetNonSpaceWrap(...) end
     table.insert(CREATED_FONT_STRINGS, fs)
     return fs
 end
 
 local frame_methods = {}
-function frame_methods:SetSize(...) end
-function frame_methods:SetPoint(...) end
+function frame_methods:SetSize(width, height)
+    self.width = width
+    self.height = height
+end
+function frame_methods:SetHeight(height) self.height = height end
+function frame_methods:SetWidth(width) self.width = width end
+function frame_methods:SetPoint(...) self.point = {...} end
 function frame_methods:SetFrameStrata(...) end
 function frame_methods:SetMovable(...) end
 function frame_methods:EnableMouse(...) end
@@ -31,16 +42,28 @@ function frame_methods:RegisterForDrag(...) end
 function frame_methods:SetClampedToScreen(...) end
 function frame_methods:SetBackdrop(...) end
 function frame_methods:SetBackdropColor(...) end
-function frame_methods:SetBackdropBorderColor(...) end
+function frame_methods:SetBackdropBorderColor(r, g, b, a)
+    self.borderColor = { r, g, b, a }
+end
 function frame_methods:SetAutoFocus(...) end
 function frame_methods:SetFontObject(...) end
 function frame_methods:SetTextInsets(...) end
 function frame_methods:SetMaxLetters(...) end
+function frame_methods:SetMultiLine(...) end
+function frame_methods:SetWordWrap(...) end
+function frame_methods:SetNonSpaceWrap(...) end
+function frame_methods:SetJustifyH(...) end
+function frame_methods:SetJustifyV(...) end
+function frame_methods:SetScrollChild(...) end
+function frame_methods:GetHeight() return self.height or 70 end
+function frame_methods:GetVerticalScroll() return self.verticalScroll or 0 end
+function frame_methods:SetVerticalScroll(value) self.verticalScroll = value end
 function frame_methods:RegisterEvent(...) end
 function frame_methods:StartMoving(...) self.moving = true end
 function frame_methods:StopMovingOrSizing(...) self.moving = false end
 function frame_methods:GetPoint() return "CENTER", UIParent, "CENTER", 0, 0 end
 function frame_methods:SetScript(event, callback) self.scripts[event] = callback end
+function frame_methods:GetScript(event) return self.scripts[event] end
 function frame_methods:CreateFontString(...) return new_font_string() end
 function frame_methods:CreateTexture(...)
     local texture = {}
