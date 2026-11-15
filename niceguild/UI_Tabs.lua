@@ -50,7 +50,8 @@ function ns.BuildTabSection(parent, sectionKind, yOffset)
 
     local editBox = ns.CreateStyledEditBox(container, 305, 26)
     editBox:SetPoint("TOPLEFT", tabToggle, "BOTTOMLEFT", 4, -4)
-    editBox:SetScript("OnTextChanged", function(self)
+    editBox:SetScript("OnTextChanged", function(self, userInput)
+        if not userInput then return end
         local active = container.activeTab
         if ns.db then
             local tabs = (sectionKind == "level") and ns.db.congratsTabs or ns.db.welcomeTabs
@@ -73,7 +74,9 @@ function ns.BuildTabSection(parent, sectionKind, yOffset)
     testBtn:SetScript("OnClick", function()
         ns.SaveInputsFromUI()
         local sampleName = ns.GetSafePlayerName() or "Adventurer"
-        ns.TriggerGuildGreeting(sectionKind, sampleName, true)
+        local tabs = (sectionKind == "level") and ns.db.congratsTabs or ns.db.welcomeTabs
+        local tabData = tabs and tabs[container.activeTab]
+        ns.TriggerGuildGreeting(sectionKind, sampleName, true, tabData and tabData.text or "")
     end)
     container.testBtn = testBtn
 
@@ -83,6 +86,9 @@ function ns.BuildTabSection(parent, sectionKind, yOffset)
     container.previewLabel = previewLabel
 
     function container:SelectTab(idx)
+        if self.editBox:HasFocus() then
+            self.editBox:ClearFocus()
+        end
         self.activeTab = idx
         for i = 1, 10 do
             local b = self.tabs[i]
@@ -93,6 +99,9 @@ function ns.BuildTabSection(parent, sectionKind, yOffset)
             end
         end
         self:RefreshTabContent()
+        if self.initialized then
+            ns.RefreshConfigUI()
+        end
     end
 
     function container:RefreshTabContent()
@@ -117,16 +126,17 @@ function ns.BuildTabSection(parent, sectionKind, yOffset)
             if t and t.enabled then
                 local trimmed = (t.text or ""):gsub("^%s+", ""):gsub("%s+$", "")
                 if trimmed == "" then
-                    btn.text:SetTextColor(1, 0.6, 0)
+                    btn.Text:SetTextColor(1, 0.6, 0)
                 else
-                    btn.text:SetTextColor(0.2, 1, 0.2)
+                    btn.Text:SetTextColor(0.2, 1, 0.2)
                 end
             else
-                btn.text:SetTextColor(0.5, 0.5, 0.5)
+                btn.Text:SetTextColor(0.5, 0.5, 0.5)
             end
         end
     end
 
     container:SelectTab(1)
+    container.initialized = true
     return container
 end

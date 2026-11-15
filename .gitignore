@@ -40,3 +40,7 @@ luac.out
 *.hex
 
 .vscode/
+
+# Python test artifacts
+__pycache__/
+*.py[cod]

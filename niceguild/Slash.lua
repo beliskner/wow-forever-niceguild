@@ -18,7 +18,7 @@ SlashCmdList["NICEGUILD"] = function(msg)
         ns.ToggleConfig()
     elseif cmd == "help" then
         ns.Print("Commands:")
-        ns.Print("  /niceguild - Open configuration window")
+        ns.Print("  /niceguild - Toggle configuration window")
         ns.Print("  /niceguild test <level|welcome> - Test preview message locally")
         ns.Print("  /niceguild icons - Show raid symbol reference")
         ns.Print("  /niceguild status - Check addon status and interface version")
@@ -30,7 +30,7 @@ SlashCmdList["NICEGUILD"] = function(msg)
         end
     elseif cmd == "status" then
         local _, _, _, tocVersion = GetBuildInfo()
-        ns.Print("Status: Active | Version: 1.4.0 | Interface TOC: " .. tostring(tocVersion))
+        ns.Print("Status: Active | Version: " .. ns.VERSION .. " | Interface TOC: " .. tostring(tocVersion))
     elseif cmd == "test" then
         local kind = sub:lower()
         if kind == "level" or kind == "congrats" then

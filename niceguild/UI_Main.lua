@@ -33,9 +33,8 @@ local function BuildConfigFrame()
     end
 
     f:SetScript("OnDragStart", function(self)
-        ns.RunOutOfCombat(function()
-            self:StartMoving()
-        end)
+        if InCombatLockdown() then return end
+        self:StartMoving()
     end)
 
     f:SetScript("OnDragStop", function(self)
@@ -50,7 +49,7 @@ local function BuildConfigFrame()
 
     local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 18, -16)
-    title:SetText("Nice Guild v1.4.0")
+    title:SetText("Nice Guild v" .. ns.VERSION)
 
     local subtitle = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     subtitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -4)
@@ -164,7 +163,7 @@ function ns.RefreshConfigUI()
         local curText = configFrame.welcomeSection.editBox:GetText() or ""
         local formatted = ns.FormatTemplate(curText, sampleName)
         local preview = ns.RenderRaidSymbolsForPreview(formatted, 14)
-        configFrame.welcomeSection.previewLabel:SetText("Preview: " + preview)
+        configFrame.welcomeSection.previewLabel:SetText("Preview: " .. preview)
     end
 end
 
