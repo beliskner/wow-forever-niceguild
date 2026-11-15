@@ -23,6 +23,9 @@ class EventFlowTests(unittest.TestCase):
                 return template
             end
             function ns.NormalizeRaidSymbolsForChat(message) return message end
+            function ns.RenderRaidSymbolsForPreview(text)
+                return (text:gsub("{star}", "|TICON|t"))
+            end
             function ns.IsSecret(value) return false end
             function ns.Print(message) ns.printed = message end
             function ns.RegisterSettingsPanel() end
@@ -46,6 +49,16 @@ class EventFlowTests(unittest.TestCase):
         self.assertEqual(ns.randomPickCalls, 0)
         self.assertEqual(ns.formatArgs[1], "Selected template")
         self.assertIn("Selected template", lua.globals().DEFAULT_CHAT_FRAME.lastMessage)
+
+    def test_local_test_preview_renders_raid_symbols_instead_of_raw_tags(self):
+        lua, ns, _ = self.make_namespace()
+        lua.execute('function ns.FormatTemplate() return "{star} nice one" end')
+
+        ns.TriggerGuildGreeting("level", "Windfury Wim", True, "{star} nice one")
+
+        message = lua.globals().DEFAULT_CHAT_FRAME.lastMessage
+        self.assertIn("|TICON|t", message)
+        self.assertNotIn("{star}", message)
 
     def test_disabled_section_skips_random_selection_and_sending(self):
         lua, ns, event_frame = self.make_namespace()

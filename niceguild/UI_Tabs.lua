@@ -14,6 +14,14 @@ local function Trim(text)
     return text:match("^%s*(.-)%s*$") or ""
 end
 
+local function GetSelfInfo()
+    if type(ns.GetSelfInfo) == "function" then
+        return ns.GetSelfInfo()
+    end
+    local name = (type(ns.GetSafePlayerName) == "function" and ns.GetSafePlayerName()) or "Adventurer"
+    return { name = name, class = "", level = "" }
+end
+
 local function CreateEditor(parent)
     if type(ns.CreateMultilineMacroBox) == "function" then
         return ns.CreateMultilineMacroBox(parent, BOX_WIDTH, BOX_HEIGHT)
@@ -34,7 +42,7 @@ end
 
 function ns.BuildTabSection(parent, sectionKind)
     local container = CreateFrame("Frame", nil, parent)
-    container:SetPoint("TOPLEFT", 10, -27)
+    container:SetPoint("TOPLEFT", 10, -30)
     container:SetPoint("BOTTOMRIGHT", -10, 8)
 
     container.tabs = {}
@@ -82,10 +90,10 @@ function ns.BuildTabSection(parent, sectionKind)
     testBtn:SetText("Test Tab")
     testBtn:SetScript("OnClick", function()
         ns.SaveInputsFromUI()
-        local sampleName = ns.GetSafePlayerName() or "Adventurer"
         local tabs = GetTabs(sectionKind)
         local tabData = tabs and tabs[container.activeTab]
-        ns.TriggerGuildGreeting(sectionKind, sampleName, true, tabData and tabData.text or "")
+        local info = GetSelfInfo()
+        ns.TriggerGuildGreeting(sectionKind, info.name, true, tabData and tabData.text or "", info.class, info.level)
     end)
     container.testBtn = testBtn
 
@@ -146,8 +154,10 @@ function ns.BuildTabSection(parent, sectionKind)
             self.warnText:SetText("|cff888888Whitespace-only tabs are ignored even when enabled.|r")
         end
 
-        local sampleName = ns.GetSafePlayerName() or "Adventurer"
-        local formatted = type(ns.FormatTemplate) == "function" and ns.FormatTemplate(rawTemplate, sampleName) or rawTemplate
+        local info = GetSelfInfo()
+        local formatted = type(ns.FormatTemplate) == "function"
+            and ns.FormatTemplate(rawTemplate, info.name, info.class, info.level)
+            or rawTemplate
         if formatted and Trim(formatted) ~= "" then
             local rendered = type(ns.RenderRaidSymbolsForPreview) == "function"
                 and ns.RenderRaidSymbolsForPreview(formatted, 14)

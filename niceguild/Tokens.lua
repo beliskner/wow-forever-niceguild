@@ -57,10 +57,7 @@ function ns.FormatTemplate(template, memberName, memberClass, memberLevel)
     if not template then return "" end
     local formatted = template
 
-    if ns.db and ns.db.useShortName and memberName then
-        memberName = memberName:match("^(.-)%-") or memberName
-    end
-
+    -- WoW: Forever names are "Primary Secondary"; never strip part of a name here.
     memberName = memberName or "Adventurer"
     memberClass = memberClass or ""
     memberLevel = memberLevel or ""
@@ -101,7 +98,193 @@ function ns.RenderRaidSymbolsForPreview(text, iconSize)
 end
 
 function ns.GetSafePlayerName()
-    local name = UnitName("player")
-    if ns.IsSecret(name) then return "Adventurer" end
-    return name
+    return ns.GetSelfFullName()
+end
+
+--------------------------------------------------------------------------------
+-- Self identity: WoW: Forever returns only the primary name from UnitName(),
+-- so the full "Primary Secondary" name is resolved from the guild roster and
+-- cached per character in SavedVariables.
+--------------------------------------------------------------------------------
+
+local function CleanName(value)
+    if value == nil then
+        return nil
+    end
+    local secret = false
+    if type(ns.IsSecret) == "function" then
+        secret = ns.IsSecret(value)
+    elseif type(issecretvalue) == "function" then
+        secret = issecretvalue(value)
+    end
+    if secret or type(value) ~= "string" then
+        return nil
+    end
+    local trimmed = value:match("^%s*(.-)%s*$")
+    if not trimmed or trimmed == "" then
+        return nil
+    end
+    return trimmed
+end
+
+function ns.GetSelfPrimaryName()
+    if type(UnitName) ~= "function" then
+        return nil
+    end
+    return CleanName(UnitName("player"))
+end
+
+local function SelfCacheKey()
+    if type(UnitGUID) == "function" then
+        local guid = CleanName(UnitGUID("player"))
+        if guid then
+            return guid
+        end
+    end
+    local primary = ns.GetSelfPrimaryName()
+    if primary then
+        return "name:" .. primary:lower()
+    end
+    return nil
+end
+
+function ns.SetSelfFullName(fullName, source)
+    local clean = CleanName(fullName)
+    if not clean then
+        return false
+    end
+    ns.selfFullName = clean
+    ns.selfNameSource = source or "GuildRoster"
+
+    if ns.db then
+        if type(ns.db.selfNameCache) ~= "table" then
+            ns.db.selfNameCache = {}
+        end
+        local key = SelfCacheKey()
+        if key then
+            ns.db.selfNameCache[key] = clean
+        end
+    end
+    return true
+end
+
+function ns.GetSelfFullName()
+    if type(ns.selfFullName) == "string" and ns.selfFullName ~= "" then
+        return ns.selfFullName
+    end
+
+    local primary = ns.GetSelfPrimaryName()
+
+    -- 1. Per-character cache, so previews are correct before the roster arrives.
+    if ns.db and type(ns.db.selfNameCache) == "table" then
+        local key = SelfCacheKey()
+        local cached = key and CleanName(ns.db.selfNameCache[key]) or nil
+        if cached then
+            if not primary or cached:lower():sub(1, #primary) == primary:lower() then
+                ns.selfFullName = cached
+                ns.selfNameSource = "SavedCache"
+                return cached
+            end
+        end
+    end
+
+    -- 2. UnitFullName may already carry both parts on some builds.
+    if type(UnitFullName) == "function" then
+        local full = CleanName((UnitFullName("player")))
+        if full and full:find(" ") then
+            ns.selfFullName = full
+            ns.selfNameSource = "UnitFullName"
+            return full
+        end
+    end
+
+    -- 3. Primary name only until GUILD_ROSTER_UPDATE resolves the full name.
+    ns.selfNameSource = "UnitName"
+    return primary or "Adventurer"
+end
+
+function ns.GetSelfInfo()
+    local class = type(UnitClass) == "function" and CleanName((UnitClass("player"))) or nil
+    local level = type(UnitLevel) == "function" and UnitLevel("player") or nil
+    if level ~= nil and type(ns.IsSecret) == "function" and ns.IsSecret(level) then
+        level = nil
+    end
+    return {
+        name = ns.GetSelfFullName(),
+        class = class or "",
+        level = level or "",
+    }
+end
+
+function ns.IsSelf(rawName)
+    local target = CleanName(rawName)
+    if not target then
+        return false
+    end
+    local targetLower = target:lower()
+
+    local fullSelf = ns.GetSelfFullName()
+    if fullSelf and targetLower == fullSelf:lower() then
+        return true
+    end
+
+    local primarySelf = ns.GetSelfPrimaryName()
+    if primarySelf and targetLower == primarySelf:lower() then
+        return true
+    end
+
+    return false
+end
+
+-- Resolves "Primary Secondary" by matching the player GUID against the roster,
+-- with a guarded primary-name + class + level fallback.
+function ns.ResolveSelfNameFromRoster()
+    if type(GetNumGuildMembers) ~= "function" or type(GetGuildRosterInfo) ~= "function" then
+        return false
+    end
+
+    local total = tonumber((GetNumGuildMembers())) or 0
+    if total <= 0 then
+        return false
+    end
+
+    local selfGuid = type(UnitGUID) == "function" and CleanName((UnitGUID("player"))) or nil
+    local primary = ns.GetSelfPrimaryName()
+    local primaryLower = primary and primary:lower() or nil
+    local selfClass = type(UnitClass) == "function" and CleanName((UnitClass("player"))) or nil
+    local selfLevel = type(UnitLevel) == "function" and UnitLevel("player") or nil
+    if selfLevel ~= nil and type(ns.IsSecret) == "function" and ns.IsSecret(selfLevel) then
+        selfLevel = nil
+    end
+
+    for index = 1, total do
+        local values = { GetGuildRosterInfo(index) }
+        if type(values[1]) == "table" then
+            values = values[1]
+        end
+
+        local clean = CleanName(values[1])
+        local rosterLevel = values[4]
+        local rosterClass = values[5]
+        local rosterGuid = values[17]
+
+        if clean then
+            local matchesGuid = selfGuid ~= nil and rosterGuid ~= nil and rosterGuid == selfGuid
+            local matchesFallback = false
+            if not matchesGuid and primaryLower then
+                local rosterLower = clean:lower()
+                local nameMatches = rosterLower == primaryLower
+                    or rosterLower:sub(1, #primaryLower + 1) == primaryLower .. " "
+                local classMatches = (not selfClass) or selfClass == "" or rosterClass == selfClass
+                local levelMatches = (not selfLevel) or rosterLevel == selfLevel
+                matchesFallback = nameMatches and classMatches and levelMatches
+            end
+
+            if matchesGuid or matchesFallback then
+                return ns.SetSelfFullName(clean, matchesGuid and "GuildRoster(GUID)" or "GuildRoster(Name+Class+Lvl)")
+            end
+        end
+    end
+
+    return false
 end

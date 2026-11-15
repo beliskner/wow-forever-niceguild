@@ -69,6 +69,14 @@ class SavedVariableTests(unittest.TestCase):
         self.assertIn("{{name}}", ns.db.congratsTabs[1].text)
         self.assertIn("{{name}}", ns.db.welcomeTabs[1].text)
 
+    def test_obsolete_realm_suffix_setting_is_removed_and_name_cache_is_created(self):
+        lua, ns = self.load_config('NiceGuildDB = { useShortName = true }')
+
+        ns.InitializeSavedVariables()
+
+        self.assertIsNone(ns.db.useShortName)
+        self.assertEqual(lua.eval("type")(ns.db.selfNameCache), "table")
+
     def test_partial_or_malformed_tab_data_is_repaired(self):
         lua, ns = self.load_config(
             r'''
@@ -110,7 +118,6 @@ class SavedVariableTests(unittest.TestCase):
             '''
         )
         ns.InitializeSavedVariables()
-        ns.db.useShortName = False
         ns.db.congratsTabs[1].text = "{{name}}" * 20
         long_name = "Longcharacter-VeryLongRealm"
 
@@ -152,12 +159,36 @@ class SavedVariableTests(unittest.TestCase):
         self.assertEqual(lua.globals().randomUpper, 3)
 
 
+class FormatTemplateTests(unittest.TestCase):
+    def setUp(self):
+        self.lua = make_runtime()
+        self.ns = self.lua.table()
+        self.lua.globals().ns = self.ns
+        self.lua.execute("function issecretvalue(value) return false end")
+        load_addon_file(self.lua, "Tokens.lua", self.ns)
+
+    def test_two_part_names_keep_the_secondary_name_and_any_hyphen(self):
+        self.assertEqual(
+            self.ns.FormatTemplate("{{Name}} of {{Class}} ({{lvl}})", "Windfury Wim", "Mage", 60),
+            "Windfury Wim of Mage (60)",
+        )
+        self.assertEqual(self.ns.FormatTemplate("{{Name}}", "Windfury-Wim"), "Windfury-Wim")
+
+    def test_raid_symbols_are_normalised_for_chat_and_rendered_for_previews(self):
+        formatted = self.ns.FormatTemplate("{{rt1}} hi {{Name}}", "Windfury Wim")
+
+        self.assertIn("{star}", formatted)
+        rendered = self.ns.RenderRaidSymbolsForPreview(formatted, 14)
+        self.assertIn("UI-RaidTargetingIcon_1", rendered)
+        self.assertNotIn("{star}", rendered)
+
+
 class RaidSymbolTests(unittest.TestCase):
     def setUp(self):
         self.lua = make_runtime()
         self.ns = self.lua.table()
         self.lua.globals().ns = self.ns
-        self.ns.db = self.lua.table(useShortName=False)
+        self.ns.db = self.lua.table()
         self.lua.execute("function issecretvalue(value) return false end")
         load_addon_file(self.lua, "Tokens.lua", self.ns)
 

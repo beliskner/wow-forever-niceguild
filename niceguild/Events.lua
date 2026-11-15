@@ -23,6 +23,10 @@ function ns.SendGuildMessage(msg)
 end
 
 function ns.TriggerGuildGreeting(kind, memberName, isLocalTest, templateOverride, memberClass, memberLevel)
+    if not isLocalTest and type(ns.IsSelf) == "function" and ns.IsSelf(memberName) then
+        return
+    end
+
     local template
     if templateOverride ~= nil then
         template = templateOverride:gsub("^%s+", ""):gsub("%s+$", "")
@@ -43,10 +47,16 @@ function ns.TriggerGuildGreeting(kind, memberName, isLocalTest, templateOverride
     end
 
     if isLocalTest then
+        -- Chat shows Blizzard symbols for {star}..{skull}, but a FontString preview
+        -- needs the texture markup, so render the test line instead of showing raw tags.
+        local display = finalMsg
+        if type(ns.RenderRaidSymbolsForPreview) == "function" then
+            display = ns.RenderRaidSymbolsForPreview(finalMsg, 14)
+        end
         if DEFAULT_CHAT_FRAME then
-            DEFAULT_CHAT_FRAME:AddMessage("|cffffd100[Test Preview (Guild)]|r " .. finalMsg)
+            DEFAULT_CHAT_FRAME:AddMessage("|cffffd100[Test Preview (Guild)]|r " .. display)
         else
-            ns.Print("[Test Preview] " .. finalMsg)
+            ns.Print("[Test Preview] " .. display)
         end
     else
         ns.SendGuildMessage(finalMsg)
@@ -55,7 +65,9 @@ end
 
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("CHAT_MSG_SYSTEM")
+eventFrame:RegisterEvent("GUILD_ROSTER_UPDATE")
 
 eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
     if event == "ADDON_LOADED" and arg1 == addonName then
@@ -64,8 +76,23 @@ eventFrame:SetScript("OnEvent", function(self, event, arg1, arg2)
             print("[Nice Guild] DB Init error: " .. tostring(err))
         end
         pcall(ns.RegisterSettingsPanel)
-    elseif event == "PLAYER_LOGIN" then
-        ns.Print("Loaded v" .. ns.VERSION .. ". Type /niceguild to configure or /niceguild help for commands.")
+    elseif event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
+        if type(ns.RequestGuildRoster) == "function" then
+            ns.RequestGuildRoster()
+        end
+        if type(ns.ResolveSelfNameFromRoster) == "function" then
+            ns.ResolveSelfNameFromRoster()
+        end
+        if event == "PLAYER_LOGIN" then
+            ns.Print("Loaded v" .. ns.VERSION .. ". Type /niceguild to configure or /niceguild help for commands.")
+        end
+    elseif event == "GUILD_ROSTER_UPDATE" then
+        if type(ns.ResolveSelfNameFromRoster) == "function" then
+            ns.ResolveSelfNameFromRoster()
+        end
+        if type(ns.RefreshConfigUI) == "function" then
+            ns.RefreshConfigUI()
+        end
     elseif event == "CHAT_MSG_SYSTEM" and arg1 then
         if not ns.db then return end
         if ns.IsSecret(arg1) then return end

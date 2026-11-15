@@ -88,13 +88,14 @@ class TabSectionTests(unittest.TestCase):
 MAIN_FRAME_SETUP = r'''
 NiceGuildDB = {}
 ns.VERSION = "1.4.1"
-ns.db = { enableCongrats = false, enableWelcome = false, useShortName = true }
+ns.db = { enableCongrats = false, enableWelcome = false }
 ns.RAID_SYMBOLS = {}
 ns.FORMAT_TOKENS = { { tag = "{{Name}}", weight = 25, desc = "test token" } }
 ns.MAX_CHAT_CHARACTERS = 255
 function ns.RunOutOfCombat(callback) callback() end
 function ns.Print(...) end
 function ns.GetSafePlayerName() return "Tester" end
+function ns.GetSelfInfo() return { name = "Tester", class = "Mage", level = 60 } end
 function ns.FormatTemplate(text, name) return text end
 function ns.RenderRaidSymbolsForPreview(text, size) return text end
 function ns.GetPotentialLength(text) return string.len(text or "") end
@@ -175,6 +176,73 @@ class WidgetIntegrationTests(unittest.TestCase):
         self.assertEqual(section.editBox.GetText(section.editBox), "Third")
         self.assertTrue(section.tabToggle.checked)
 
+    def test_preview_expands_class_and_level_with_the_self_identity(self):
+        lua = make_runtime(with_ui=True)
+        ns = lua.table()
+        lua.globals().ns = ns
+        lua.execute(
+            r'''
+            ns.db = { congratsTabs = {}, welcomeTabs = {} }
+            for i = 1, 10 do
+                ns.db.congratsTabs[i] = { enabled = false, text = "" }
+                ns.db.welcomeTabs[i] = { enabled = false, text = "" }
+            end
+            ns.db.congratsTabs[2] = { enabled = true, text = "{{Name}} the {{Class}} hit {{lvl}}" }
+            ns.MAX_CHAT_CHARACTERS = 255
+            ns.GetSafePlayerName = nil
+            function ns.GetSelfInfo() return { name = "Windfury Wim", class = "Mage", level = 60 } end
+            function ns.GetPotentialLength(text) return string.len(text or "") end
+            function ns.FormatTemplate(template, name, class, level)
+                return (template:gsub("{{Name}}", name):gsub("{{Class}}", class):gsub("{{lvl}}", tostring(level)))
+            end
+            function ns.RenderRaidSymbolsForPreview(text, size) return text end
+            function ns.RefreshConfigUI() end
+            function ns.TriggerGuildGreeting(...) end
+            function ns.SaveInputsFromUI() end
+            '''
+        )
+        load_addon_file(lua, "UI_Widgets.lua", ns)
+        load_addon_file(lua, "UI_Tabs.lua", ns)
+
+        section = ns.BuildTabSection(lua.globals().UIParent, "level")
+        section.SelectTab(section, 2)
+
+        self.assertEqual(section.previewText.text, "Windfury Wim the Mage hit 60")
+
+    def test_test_tab_passes_class_and_level_to_the_sender(self):
+        lua = make_runtime(with_ui=True)
+        ns = lua.table()
+        lua.globals().ns = ns
+        lua.execute(
+            r'''
+            ns.db = { congratsTabs = {}, welcomeTabs = {} }
+            for i = 1, 10 do
+                ns.db.congratsTabs[i] = { enabled = false, text = "" }
+                ns.db.welcomeTabs[i] = { enabled = false, text = "" }
+            end
+            ns.db.congratsTabs[1] = { enabled = true, text = "one" }
+            ns.MAX_CHAT_CHARACTERS = 255
+            function ns.GetSelfInfo() return { name = "Windfury Wim", class = "Mage", level = 60 } end
+            function ns.GetPotentialLength(text) return string.len(text or "") end
+            function ns.FormatTemplate(text) return text end
+            function ns.RenderRaidSymbolsForPreview(text, size) return text end
+            function ns.RefreshConfigUI() end
+            function ns.SaveInputsFromUI() end
+            ns.triggerArgs = nil
+            function ns.TriggerGuildGreeting(...) ns.triggerArgs = {...} end
+            '''
+        )
+        load_addon_file(lua, "UI_Widgets.lua", ns)
+        load_addon_file(lua, "UI_Tabs.lua", ns)
+
+        section = ns.BuildTabSection(lua.globals().UIParent, "level")
+        section.testBtn.scripts.OnClick()
+
+        self.assertEqual(ns.triggerArgs[1], "level")
+        self.assertEqual(ns.triggerArgs[2], "Windfury Wim")
+        self.assertEqual(ns.triggerArgs[5], "Mage")
+        self.assertEqual(ns.triggerArgs[6], 60)
+
 
 class MainWindowTests(unittest.TestCase):
     def test_main_window_restores_the_three_section_design(self):
@@ -188,10 +256,26 @@ class MainWindowTests(unittest.TestCase):
         frame = lua.globals().FindFrameByName("NiceGuildConfigFrame")
 
         self.assertEqual(frame.width, 580)
-        self.assertEqual(frame.height, 700)
+        self.assertEqual(frame.height, 650)
         self.assertTrue(lua.globals().HasFontStringText("1. Level-Up Congratulations"))
         self.assertTrue(lua.globals().HasFontStringText("2. New Member Welcome"))
-        self.assertTrue(lua.globals().HasFontStringText("3. Utilities, Auto-Message Toggles & Formatting Tokens"))
+        self.assertTrue(lua.globals().HasFontStringText("3. Utilities, Formatting Tokens & Raid Symbols"))
+
+    def test_master_toggles_live_inside_their_own_sections_and_start_off(self):
+        lua = make_runtime(with_ui=True)
+        ns = lua.table()
+        lua.globals().ns = ns
+        lua.execute(MAIN_FRAME_SETUP)
+        load_addon_file(lua, "UI_Main.lua", ns)
+
+        ns.ToggleConfig()
+        frame = lua.globals().FindFrameByName("NiceGuildConfigFrame")
+        same = lua.eval("function(a, b) return a == b end")
+
+        self.assertTrue(same(frame.congratsSection.masterCheck, frame.congratsCheck))
+        self.assertTrue(same(frame.welcomeSection.masterCheck, frame.welcomeCheck))
+        self.assertFalse(frame.congratsSection.masterCheck.checked)
+        self.assertFalse(frame.welcomeSection.masterCheck.checked)
 
     def test_refresh_renders_formatting_token_previews(self):
         lua = make_runtime(with_ui=True)

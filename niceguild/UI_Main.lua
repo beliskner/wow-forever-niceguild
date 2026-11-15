@@ -19,7 +19,6 @@ function ns.SaveInputsFromUI()
     if not configFrame or not ns.db then return end
     ns.db.enableCongrats = configFrame.congratsCheck:GetChecked() and true or false
     ns.db.enableWelcome = configFrame.welcomeCheck:GetChecked() and true or false
-    ns.db.useShortName = configFrame.shortNameCheck:GetChecked() and true or false
     if configFrame.congratsSection then configFrame.congratsSection:RefreshTabContent() end
     if configFrame.welcomeSection then configFrame.welcomeSection:RefreshTabContent() end
 end
@@ -28,7 +27,6 @@ function ns.RefreshConfigUI()
     if not configFrame or not ns.db then return end
     configFrame.congratsCheck:SetChecked(ns.db.enableCongrats == true)
     configFrame.welcomeCheck:SetChecked(ns.db.enableWelcome == true)
-    configFrame.shortNameCheck:SetChecked(ns.db.useShortName == true)
 
     if configFrame.congratsSection then
         configFrame.congratsSection:UpdateTabVisuals()
@@ -40,9 +38,9 @@ function ns.RefreshConfigUI()
     end
 
     if configFrame.tokenPreviewStrings then
-        local sampleName = ns.GetSafePlayerName() or "Adventurer"
+        local info = ns.GetSelfInfo()
         for _, entry in ipairs(configFrame.tokenPreviewStrings) do
-            local sample = ns.FormatTemplate(entry.tag, sampleName) or ""
+            local sample = ns.FormatTemplate(entry.tag, info.name, info.class, info.level) or ""
             entry.fontString:SetText("|cffffffff" .. sample .. "|r |cff888888(" .. entry.weight .. ")|r")
         end
     end
@@ -66,7 +64,7 @@ local function BuildConfigFrame()
     end
 
     local f = CreateFrame("Frame", "NiceGuildConfigFrame", UIParent, "BackdropTemplate")
-    f:SetSize(580, 700)
+    f:SetSize(580, 650)
     f:SetFrameStrata("DIALOG")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -136,7 +134,22 @@ local function BuildConfigFrame()
     sec1Title:SetPoint("TOPLEFT", 10, -8)
     sec1Title:SetText("1. Level-Up Congratulations")
 
+    local congratsCheck = CreateFrame("CheckButton", nil, sec1, "UICheckButtonTemplate")
+    congratsCheck:SetSize(24, 24)
+    congratsCheck:SetPoint("TOPRIGHT", -10, -4)
+    congratsCheck.Text:SetText("Enable auto-congratulate")
+    congratsCheck:SetScript("OnClick", function(self)
+        if ns.db then
+            ns.db.enableCongrats = self:GetChecked() and true or false
+        end
+        ns.RefreshConfigUI()
+    end)
+    f.congratsCheck = congratsCheck
+    sec1.masterCheck = congratsCheck
+
     f.congratsSection = ns.BuildTabSection(sec1, "level")
+    f.congratsSection.masterCheck = congratsCheck
+    f.congratsSection.panel = sec1
 
     ---------------------------------------------------------------------------
     -- SECTION 2: New Member Welcome
@@ -149,35 +162,10 @@ local function BuildConfigFrame()
     sec2Title:SetPoint("TOPLEFT", 10, -8)
     sec2Title:SetText("2. New Member Welcome")
 
-    f.welcomeSection = ns.BuildTabSection(sec2, "welcome")
-
-    ---------------------------------------------------------------------------
-    -- SECTION 3: Utilities, Toggles & Formatting Tokens
-    ---------------------------------------------------------------------------
-    local sec3 = ns.CreateSectionPanel(f, 212)
-    sec3:SetPoint("TOPLEFT", sec2, "BOTTOMLEFT", 0, -8)
-    sec3:SetPoint("TOPRIGHT", sec2, "BOTTOMRIGHT", 0, -8)
-
-    local sec3Title = sec3:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    sec3Title:SetPoint("TOPLEFT", 10, -8)
-    sec3Title:SetText("3. Utilities, Auto-Message Toggles & Formatting Tokens")
-
-    local congratsCheck = CreateFrame("CheckButton", nil, sec3, "UICheckButtonTemplate")
-    congratsCheck:SetSize(24, 24)
-    congratsCheck:SetPoint("TOPLEFT", 8, -26)
-    congratsCheck.Text:SetText("Enable Auto-Congratulate (Level-Up)")
-    congratsCheck:SetScript("OnClick", function(self)
-        if ns.db then
-            ns.db.enableCongrats = self:GetChecked() and true or false
-        end
-        ns.RefreshConfigUI()
-    end)
-    f.congratsCheck = congratsCheck
-
-    local welcomeCheck = CreateFrame("CheckButton", nil, sec3, "UICheckButtonTemplate")
+    local welcomeCheck = CreateFrame("CheckButton", nil, sec2, "UICheckButtonTemplate")
     welcomeCheck:SetSize(24, 24)
-    welcomeCheck:SetPoint("TOPLEFT", 282, -26)
-    welcomeCheck.Text:SetText("Enable Auto-Welcome (Guild Join)")
+    welcomeCheck:SetPoint("TOPRIGHT", -10, -4)
+    welcomeCheck.Text:SetText("Enable auto-welcome")
     welcomeCheck:SetScript("OnClick", function(self)
         if ns.db then
             ns.db.enableWelcome = self:GetChecked() and true or false
@@ -185,9 +173,25 @@ local function BuildConfigFrame()
         ns.RefreshConfigUI()
     end)
     f.welcomeCheck = welcomeCheck
+    sec2.masterCheck = welcomeCheck
+
+    f.welcomeSection = ns.BuildTabSection(sec2, "welcome")
+    f.welcomeSection.masterCheck = welcomeCheck
+    f.welcomeSection.panel = sec2
+
+    ---------------------------------------------------------------------------
+    -- SECTION 3: Utilities, Formatting Tokens & Raid Symbols
+    ---------------------------------------------------------------------------
+    local sec3 = ns.CreateSectionPanel(f, 180)
+    sec3:SetPoint("TOPLEFT", sec2, "BOTTOMLEFT", 0, -8)
+    sec3:SetPoint("TOPRIGHT", sec2, "BOTTOMRIGHT", 0, -8)
+
+    local sec3Title = sec3:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    sec3Title:SetPoint("TOPLEFT", 10, -8)
+    sec3Title:SetText("3. Utilities, Formatting Tokens & Raid Symbols")
 
     local raidLabel = sec3:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    raidLabel:SetPoint("TOPLEFT", 10, -54)
+    raidLabel:SetPoint("TOPLEFT", 10, -30)
     raidLabel:SetText("Insert Raid Symbol:")
 
     local prevRaidBtn = nil
@@ -237,20 +241,8 @@ local function BuildConfigFrame()
     end
 
     local tokensHeader = sec3:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    tokensHeader:SetPoint("TOPLEFT", 10, -110)
+    tokensHeader:SetPoint("TOPLEFT", 10, -62)
     tokensHeader:SetText("Insert Formatting Token (previewed with your character; potential cost in parentheses):")
-
-    local shortNameCheck = CreateFrame("CheckButton", nil, sec3, "UICheckButtonTemplate")
-    shortNameCheck:SetSize(24, 24)
-    shortNameCheck:SetPoint("TOPLEFT", 8, -82)
-    shortNameCheck.Text:SetText("Strip -Realm suffix from {{name}}")
-    shortNameCheck:SetScript("OnClick", function(self)
-        if ns.db then
-            ns.db.useShortName = self:GetChecked() and true or false
-            ns.RefreshConfigUI()
-        end
-    end)
-    f.shortNameCheck = shortNameCheck
 
     f.tokenPreviewStrings = {}
 
@@ -258,7 +250,7 @@ local function BuildConfigFrame()
         local isRightCol = (idx >= 5)
         local rowIndex = isRightCol and (idx - 5) or (idx - 1)
         local colX = isRightCol and 274 or 10
-        local rowY = -122 - (rowIndex * 22)
+        local rowY = -76 - (rowIndex * 22)
 
         local tokBtn = CreateFrame("Button", nil, sec3, "BackdropTemplate")
         tokBtn:SetSize(76, 20)

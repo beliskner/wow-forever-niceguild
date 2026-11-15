@@ -33,12 +33,11 @@ SlashCmdList["NICEGUILD"] = function(msg)
         ns.Print("Status: Active | Version: " .. ns.VERSION .. " | Interface TOC: " .. tostring(tocVersion))
     elseif cmd == "test" then
         local kind = sub:lower()
+        local info = ns.GetSelfInfo()
         if kind == "level" or kind == "congrats" then
-            local sample = ns.GetSafePlayerName() or "Thrall"
-            ns.TriggerGuildGreeting("level", sample, true)
+            ns.TriggerGuildGreeting("level", info.name, true, nil, info.class, info.level)
         elseif kind == "welcome" then
-            local sample = ns.GetSafePlayerName() or "Thrall"
-            ns.TriggerGuildGreeting("welcome", sample, true)
+            ns.TriggerGuildGreeting("welcome", info.name, true, nil, info.class, info.level)
         else
             ns.Print("Usage: /niceguild test level or /niceguild test welcome")
         end

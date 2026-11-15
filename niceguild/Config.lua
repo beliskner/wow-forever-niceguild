@@ -44,7 +44,9 @@ function ns.InitializeSavedVariables()
 
     if type(NiceGuildDB.enableCongrats) ~= "boolean" then NiceGuildDB.enableCongrats = false end
     if type(NiceGuildDB.enableWelcome) ~= "boolean" then NiceGuildDB.enableWelcome = false end
-    if type(NiceGuildDB.useShortName) ~= "boolean" then NiceGuildDB.useShortName = true end
+    -- Obsolete on WoW: Forever (no realm suffix). Drop it from existing SavedVariables.
+    NiceGuildDB.useShortName = nil
+    if type(NiceGuildDB.selfNameCache) ~= "table" then NiceGuildDB.selfNameCache = {} end
 
     NiceGuildDB.congratsTabs = NormalizeTabs(
         NiceGuildDB.congratsTabs,
