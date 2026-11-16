@@ -1,0 +1,15 @@
+package-as: niceguild
+
+# The addon lives in a subdirectory, but the packaged zip must have the addon
+# files at its root. The key's basename is what the packager scans for the TOC
+# (niceguild/niceguild.toc); the move itself is a no-op because nothing sits at
+# niceguild/niceguild.
+move-folders:
+  niceguild/niceguild: niceguild
+
+ignore:
+  - .github
+  - .release
+  - tests
+  - requirements.txt
+  - "*.zip"

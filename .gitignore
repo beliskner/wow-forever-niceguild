@@ -44,3 +44,5 @@ luac.out
 # Python test artifacts
 __pycache__/
 *.py[cod]
+# BigWigs packager working directory
+.release/

@@ -1,0 +1,45 @@
+name: Package and release
+
+# Only version tags publish. Pushes to main (or any other branch) never upload.
+# The tag is still rejected below unless its commit is on the `release` branch.
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the tagged commit
+        uses: actions/checkout@v4
+        with:
+          # Full history so the packager can build a changelog from the previous tag.
+          fetch-depth: 0
+
+      - name: Require the tag to point at the release branch
+        run: |
+          set -euo pipefail
+          if ! git fetch --no-tags origin "+refs/heads/release:refs/remotes/origin/release"; then
+            echo "::error::No 'release' branch on origin. Create it before publishing a tag."
+            exit 1
+          fi
+          tag_commit="$(git rev-list -n 1 "${GITHUB_REF}")"
+          if ! git merge-base --is-ancestor "$tag_commit" refs/remotes/origin/release; then
+            echo "::error::${GITHUB_REF_NAME} is not reachable from the release branch; refusing to publish."
+            exit 1
+          fi
+          echo "Publishing ${GITHUB_REF_NAME} from the release branch (${tag_commit})."
+
+      - name: Package and upload to CurseForge
+        uses: BigWigsMods/packager@v2
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
