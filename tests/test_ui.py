@@ -11,7 +11,7 @@ class TabSectionTests(unittest.TestCase):
         lua.execute(
             r'''
             ns.db = { congratsTabs = {}, welcomeTabs = {} }
-            for i = 1, 10 do
+            for i = 1, 30 do
                 ns.db.congratsTabs[i] = { enabled = i == 1, text = i == 1 and " Hello " or "" }
                 ns.db.welcomeTabs[i] = { enabled = i == 1, text = i == 1 and " Welcome " or "" }
             end
@@ -30,6 +30,7 @@ class TabSectionTests(unittest.TestCase):
             end
             '''
         )
+        load_addon_file(lua, "Config.lua", ns)
         load_addon_file(lua, "UI_Tabs.lua", ns)
         return lua, ns
 
@@ -130,7 +131,7 @@ class WidgetIntegrationTests(unittest.TestCase):
         lua.execute(
             r'''
             ns.db = { congratsTabs = {}, welcomeTabs = {} }
-            for i = 1, 10 do
+            for i = 1, 30 do
                 ns.db.congratsTabs[i] = { enabled = false, text = "" }
                 ns.db.welcomeTabs[i] = { enabled = false, text = "" }
             end
@@ -147,13 +148,14 @@ class WidgetIntegrationTests(unittest.TestCase):
             '''
         )
         load_addon_file(lua, "UI_Widgets.lua", ns)
+        load_addon_file(lua, "Config.lua", ns)
         load_addon_file(lua, "UI_Tabs.lua", ns)
         return lua, ns, ns.BuildTabSection(lua.globals().UIParent, kind)
 
-    def test_real_widgets_build_ten_tab_buttons_with_the_first_selected(self):
+    def test_real_widgets_build_thirty_tab_buttons_with_the_first_selected(self):
         lua, ns, section = self.make_section()
 
-        self.assertEqual(len(section.tabs), 10)
+        self.assertEqual(len(section.tabs), 30)
         self.assertEqual(section.activeTab, 1)
         self.assertFalse(section.tabs[1].enabled)
         self.assertTrue(section.tabs[3].enabled)
@@ -183,7 +185,7 @@ class WidgetIntegrationTests(unittest.TestCase):
         lua.execute(
             r'''
             ns.db = { congratsTabs = {}, welcomeTabs = {} }
-            for i = 1, 10 do
+            for i = 1, 30 do
                 ns.db.congratsTabs[i] = { enabled = false, text = "" }
                 ns.db.welcomeTabs[i] = { enabled = false, text = "" }
             end
@@ -202,6 +204,7 @@ class WidgetIntegrationTests(unittest.TestCase):
             '''
         )
         load_addon_file(lua, "UI_Widgets.lua", ns)
+        load_addon_file(lua, "Config.lua", ns)
         load_addon_file(lua, "UI_Tabs.lua", ns)
 
         section = ns.BuildTabSection(lua.globals().UIParent, "level")
@@ -216,7 +219,7 @@ class WidgetIntegrationTests(unittest.TestCase):
         lua.execute(
             r'''
             ns.db = { congratsTabs = {}, welcomeTabs = {} }
-            for i = 1, 10 do
+            for i = 1, 30 do
                 ns.db.congratsTabs[i] = { enabled = false, text = "" }
                 ns.db.welcomeTabs[i] = { enabled = false, text = "" }
             end
@@ -233,6 +236,7 @@ class WidgetIntegrationTests(unittest.TestCase):
             '''
         )
         load_addon_file(lua, "UI_Widgets.lua", ns)
+        load_addon_file(lua, "Config.lua", ns)
         load_addon_file(lua, "UI_Tabs.lua", ns)
 
         section = ns.BuildTabSection(lua.globals().UIParent, "level")
@@ -256,7 +260,9 @@ class MainWindowTests(unittest.TestCase):
         frame = lua.globals().FindFrameByName("NiceGuildConfigFrame")
 
         self.assertEqual(frame.width, 580)
-        self.assertEqual(frame.height, 650)
+        self.assertEqual(frame.height, 738)
+        self.assertEqual(frame.congratsSection.panel.height, 224)
+        self.assertEqual(frame.welcomeSection.panel.height, 224)
         self.assertTrue(lua.globals().HasFontStringText("1. Level-Up Congratulations (check to enable)"))
         self.assertTrue(lua.globals().HasFontStringText("2. New Member Welcome (check to enable)"))
         self.assertTrue(lua.globals().HasFontStringText("3. Utilities, Formatting Tokens & Raid Symbols"))

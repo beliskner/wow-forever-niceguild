@@ -63,7 +63,7 @@ class SavedVariableTests(unittest.TestCase):
 
         self.assertFalse(ns.db.enableCongrats)
         self.assertFalse(ns.db.enableWelcome)
-        for index in range(1, 11):
+        for index in range(1, 31):
             self.assertFalse(ns.db.congratsTabs[index].enabled)
             self.assertFalse(ns.db.welcomeTabs[index].enabled)
         self.assertIn("{{name}}", ns.db.congratsTabs[1].text)
@@ -89,7 +89,7 @@ class SavedVariableTests(unittest.TestCase):
 
         ns.InitializeSavedVariables()
 
-        for index in range(1, 11):
+        for index in range(1, 31):
             congrats = ns.db.congratsTabs[index]
             welcome = ns.db.welcomeTabs[index]
             self.assertEqual(lua.eval("type")(congrats), "table")
@@ -105,8 +105,8 @@ class SavedVariableTests(unittest.TestCase):
         ns.InitializeSavedVariables()
 
         self.assertEqual(lua.eval("type")(ns.db), "table")
-        self.assertEqual(len(ns.db.congratsTabs), 10)
-        self.assertEqual(len(ns.db.welcomeTabs), 10)
+        self.assertEqual(len(ns.db.congratsTabs), 30)
+        self.assertEqual(len(ns.db.welcomeTabs), 30)
 
     def test_random_selection_validates_length_with_the_real_member_name(self):
         lua, ns = self.load_config("NiceGuildDB = {}")
@@ -140,7 +140,7 @@ class SavedVariableTests(unittest.TestCase):
             '''
         )
         ns.InitializeSavedVariables()
-        for index in range(1, 11):
+        for index in range(1, 31):
             ns.db.congratsTabs[index].enabled = False
             ns.db.congratsTabs[index].text = ""
         ns.db.congratsTabs[2].enabled = True

@@ -38,7 +38,8 @@ class AddonLoadOrderTests(unittest.TestCase):
 
         self.assertIsNotNone(ns.db)
         self.assertEqual(ns.VERSION, "1.8.0")
-        self.assertEqual(len(ns.db.congratsTabs), 10)
+        self.assertEqual(len(ns.db.congratsTabs), 30)
+        self.assertEqual(len(ns.db.welcomeTabs), 30)
         ns.ToggleConfig()
         config_frame = lua.globals().FindFrameByName("NiceGuildConfigFrame")
         self.assertTrue(config_frame.IsShown(config_frame))
