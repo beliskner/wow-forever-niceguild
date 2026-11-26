@@ -37,7 +37,7 @@ class AddonLoadOrderTests(unittest.TestCase):
                 on_event(frame, "ADDON_LOADED", "niceguild")
 
         self.assertIsNotNone(ns.db)
-        self.assertEqual(ns.VERSION, "1.8.0")
+        self.assertEqual(ns.VERSION, "1.9.0")
         self.assertEqual(len(ns.db.congratsTabs), 30)
         self.assertEqual(len(ns.db.welcomeTabs), 30)
         ns.ToggleConfig()
