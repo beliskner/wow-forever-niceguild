@@ -1,5 +1,7 @@
 local addonName, ns = ...
 
+ns.MESSAGE_TAB_COUNT = 30
+
 -- Default message templates and configuration schema
 local function HasUsableText(text)
     return type(text) == "string" and text:match("%S") ~= nil
@@ -13,7 +15,7 @@ local function NormalizeTabs(tabs, legacyText, legacyEnabled, defaultText)
     local useLegacyText = type(legacyText) == "string"
         and (type(tabs[1]) ~= "table" or type(tabs[1].text) ~= "string")
 
-    for i = 1, 10 do
+    for i = 1, ns.MESSAGE_TAB_COUNT do
         local tab = tabs[i]
         if type(tab) ~= "table" then
             tab = {}
@@ -73,7 +75,7 @@ function ns.PickRandomEnabledTab(kind, memberName, memberClass, memberLevel)
     if not tabs then return nil end
 
     local eligible = {}
-    for i = 1, 10 do
+    for i = 1, ns.MESSAGE_TAB_COUNT do
         local tab = tabs[i]
         if tab and tab.enabled and tab.text then
             local trimmed = tab.text:gsub("^%s+", ""):gsub("%s+$", "")

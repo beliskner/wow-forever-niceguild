@@ -1,6 +1,9 @@
 local addonName, ns = ...
 
-local TAB_COUNT = 10
+local TAB_COUNT = ns.MESSAGE_TAB_COUNT
+local TABS_PER_ROW = 10
+local TAB_ROW_HEIGHT = 22
+local EXTRA_TAB_HEIGHT = (math.ceil(TAB_COUNT / TABS_PER_ROW) - 1) * TAB_ROW_HEIGHT
 local BOX_WIDTH = 258
 local BOX_HEIGHT = 60
 
@@ -52,8 +55,9 @@ function ns.BuildTabSection(parent, sectionKind)
     for i = 1, TAB_COUNT do
         local btn = CreateFrame("Button", nil, container, "UIPanelButtonTemplate")
         btn:SetSize(29, 20)
-        if not prevTabBtn then
-            btn:SetPoint("TOPLEFT", 0, 0)
+        if (i - 1) % TABS_PER_ROW == 0 then
+            local row = math.floor((i - 1) / TABS_PER_ROW)
+            btn:SetPoint("TOPLEFT", 0, -row * TAB_ROW_HEIGHT)
         else
             btn:SetPoint("LEFT", prevTabBtn, "RIGHT", 2, 0)
         end
@@ -68,7 +72,7 @@ function ns.BuildTabSection(parent, sectionKind)
 
     local tabToggle = CreateFrame("CheckButton", nil, container, "UICheckButtonTemplate")
     tabToggle:SetSize(24, 24)
-    tabToggle:SetPoint("LEFT", prevTabBtn, "RIGHT", 8, 0)
+    tabToggle:SetPoint("LEFT", container.tabs[TABS_PER_ROW], "RIGHT", 8, 0)
     tabToggle.Text:SetText("Enable Tab")
     tabToggle:SetScript("OnClick", function(self)
         local tabs = GetTabs(sectionKind)
@@ -98,15 +102,15 @@ function ns.BuildTabSection(parent, sectionKind)
     container.testBtn = testBtn
 
     local editLabel = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    editLabel:SetPoint("TOPLEFT", 0, -26)
+    editLabel:SetPoint("TOPLEFT", 0, -26 - EXTRA_TAB_HEIGHT)
     editLabel:SetText("|cffccccccMessage Template (4-line macro editor):|r")
 
     local previewLabel = container:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    previewLabel:SetPoint("TOPLEFT", BOX_WIDTH + 14, -26)
+    previewLabel:SetPoint("TOPLEFT", BOX_WIDTH + 14, -26 - EXTRA_TAB_HEIGHT)
     previewLabel:SetText("|cff7fb3e6Live Preview (read-only):|r")
 
     local editorContainer, editBox = CreateEditor(container)
-    editorContainer:SetPoint("TOPLEFT", 0, -40)
+    editorContainer:SetPoint("TOPLEFT", 0, -40 - EXTRA_TAB_HEIGHT)
     editBox:SetScript("OnTextChanged", function(self, userInput)
         if not userInput then return end
         local tabs = GetTabs(sectionKind)

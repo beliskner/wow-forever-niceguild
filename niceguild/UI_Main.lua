@@ -79,7 +79,7 @@ local function BuildConfigFrame()
     end
 
     local f = CreateFrame("Frame", "NiceGuildConfigFrame", UIParent, "BackdropTemplate")
-    f:SetSize(580, 650)
+    f:SetSize(580, 738)
     f:SetFrameStrata("DIALOG")
     f:SetMovable(true)
     f:EnableMouse(true)
@@ -141,7 +141,7 @@ local function BuildConfigFrame()
     ---------------------------------------------------------------------------
     -- SECTION 1: Level-Up Congratulations
     ---------------------------------------------------------------------------
-    local sec1 = ns.CreateSectionPanel(f, 180)
+    local sec1 = ns.CreateSectionPanel(f, 224)
     sec1:SetPoint("TOPLEFT", 14, -48)
     sec1:SetPoint("TOPRIGHT", -14, -48)
 
@@ -161,7 +161,7 @@ local function BuildConfigFrame()
     ---------------------------------------------------------------------------
     -- SECTION 2: New Member Welcome
     ---------------------------------------------------------------------------
-    local sec2 = ns.CreateSectionPanel(f, 180)
+    local sec2 = ns.CreateSectionPanel(f, 224)
     sec2:SetPoint("TOPLEFT", sec1, "BOTTOMLEFT", 0, -8)
     sec2:SetPoint("TOPRIGHT", sec1, "BOTTOMRIGHT", 0, -8)
 
